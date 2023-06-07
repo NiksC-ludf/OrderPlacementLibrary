@@ -7,6 +7,8 @@
         private readonly int maxAllowedKitsPerOrder = 999;
         private readonly string InvalidDateExceptionMessage = "Expected delivery date can not be in the past.";
         private readonly string InvalidKitAmountExceptionMessage = "Kit amount per order can not be more than 999.";
+        private readonly string InvalidKitTypeMessage = "Kit type {0} doesnt exist.";
+        private readonly string TooFewKitAmountMessage = "Kit amount can not be 0.";
 
         private List<Order> orders = new();
 
@@ -20,6 +22,7 @@
         /// </summary>
         public List<Order> GetAllCustomerOrders(int customerId)
         {
+            _ = ValidateCustomerId(customerId);
             return orders.Where(x => x.customerId == customerId).ToList();
         }
 
@@ -33,26 +36,53 @@
         /// <returns>True if successful, False in case of failure.</returns>
         public bool PlaceOrder(int customerId, DateTime expectedDeliveryDate, int desiredAmount, int kitType)
         {
-            try
+            Order order = new Order
             {
-                Order order = new Order
-                {
-                    customerId = customerId,
-                    expectedDeliveryDate = ValidateDate(expectedDeliveryDate),
-                    desiredAmount = ValidateKitAmount(desiredAmount),
-                    kitType = kitType,
-                    totalPrice = ApplyDiscount(desiredAmount, kitType),
-                };
+                customerId = ValidateCustomerId(customerId),
+                expectedDeliveryDate = ValidateDate(expectedDeliveryDate),
+                desiredAmount = ValidateKitAmount(desiredAmount),
+                kitType = ValidateKitType(kitType),
+                totalPrice = ApplyDiscount(desiredAmount, kitType),
+            };
 
-                orders.Add(order);
-
-            } catch(Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                return false;
-            }
+            orders.Add(order);
 
             return true;
+        }
+
+        /// <summary>
+        /// Validates customer identifier.
+        /// </summary>
+        /// <param name="customerId">Customer identifier.</param>
+        /// <exception cref="ArgumentNullException">Thrown if customer identifier is not set.</exception>
+        private int ValidateCustomerId(int customerId)
+        {
+            if(customerId == default) 
+            {
+                throw new ArgumentNullException(nameof(customerId));
+            }
+            return customerId;
+        }
+
+        /// <summary>
+        /// Validates kit type.
+        /// </summary>
+        /// <param name="kitType">Kit type.</param>
+        /// <exception cref="ArgumentNullException">Thrown if passed kit type is the same as default integer value.</exception>
+        /// <exception cref="ArgumentException">Thrown if specified kit doesnt exist.</exception>
+        private int ValidateKitType(int kitType)
+        {
+            if(kitType == default)
+            {
+                throw new ArgumentNullException(nameof(kitType));
+            }
+
+            if(!kitPrices.ContainsKey(kitType))
+            {
+                throw new ArgumentException(string.Format(InvalidKitTypeMessage, kitType));
+            }
+
+            return kitType;
         }
 
         /// <summary>
@@ -95,6 +125,10 @@
         /// <exception cref="Exception">Exception thrown if expected delivery date is in the past.</exception>
         private DateTime ValidateDate(DateTime expectedDeliveryDate)
         {
+            if(expectedDeliveryDate == default)
+            {
+                throw new ArgumentNullException(nameof(expectedDeliveryDate));
+            }
             if (expectedDeliveryDate.Date < DateTime.Now.Date)
             {
                 throw new Exception(InvalidDateExceptionMessage);
@@ -111,9 +145,14 @@
         /// <exception cref="Exception">Exception throw if amount is invalid.</exception>
         private int ValidateKitAmount(int amount)
         {
-            if (amount < 1 || amount > maxAllowedKitsPerOrder)
+            if (amount == default)
             {
-                throw new Exception(InvalidKitAmountExceptionMessage);
+                throw new ArgumentException(TooFewKitAmountMessage);
+            }
+
+            else if (amount > maxAllowedKitsPerOrder)
+            {
+                throw new ArgumentException(InvalidKitAmountExceptionMessage);
             }
 
             return amount;

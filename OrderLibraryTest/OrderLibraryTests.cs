@@ -1,5 +1,6 @@
 using FluentAssertions;
 using OrderPlacement;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OrderLibraryTest
 {
@@ -41,7 +42,21 @@ namespace OrderLibraryTest
         }
 
         [Fact]
-        public void GetAllCustomerOrders_InValidId_ReturnsEmptyList()
+        public void GetAllCustomerOrders_InvalidId_ThrowsException()
+        {
+            // Arrange
+            OrderLibrary orderLibrary = new OrderLibrary();
+            int id = default;
+            orderLibrary.PlaceOrder(1, DateTime.Now.AddMonths(1).Date, 2, 1);
+            orderLibrary.PlaceOrder(1, DateTime.Now.AddMonths(2).Date, 4, 1);
+            orderLibrary.PlaceOrder(1, DateTime.Now.AddMonths(3).Date, 6, 1);
+            orderLibrary.PlaceOrder(2, DateTime.Now.AddMonths(4).Date, 7, 1);
+
+            Assert.Throws<ArgumentNullException>(() => orderLibrary.GetAllCustomerOrders(id));
+        }
+
+        [Fact]
+        public void GetAllCustomerOrders_NonExistantId_ReturnsEmptyList()
         {
             // Arrange
             OrderLibrary orderLibrary = new OrderLibrary();
@@ -84,7 +99,7 @@ namespace OrderLibraryTest
         }
 
         [Fact]
-        public void PlaceOrder_InvalidDate_ReturnsFalse()
+        public void PlaceOrder_InvalidDatePast_ThrowsException()
         {
             // Arrange
             OrderLibrary orderLibrary = new OrderLibrary();
@@ -92,32 +107,38 @@ namespace OrderLibraryTest
             int kitType = 1;
             int desiredAmount = 2;
 
-            // Act
-            bool result = orderLibrary.PlaceOrder(1, date, desiredAmount, kitType);
-
-            // Assert
-            result.Should().BeFalse();
+            // Act and assert
+            Assert.Throws<Exception>(() => orderLibrary.PlaceOrder(1, date, desiredAmount, kitType));
         }
 
         [Fact]
-        public void PlaceOrder_ZeroKitAmount_ReturnsFalse()
+        public void PlaceOrder_InvalidDateDefault_ThrowsException()
+        {
+            // Arrange
+            OrderLibrary orderLibrary = new OrderLibrary();
+            DateTime date = default;
+            int kitType = 1;
+            int desiredAmount = 2;
+
+            // Act and assert
+            Assert.Throws<ArgumentNullException>(() => orderLibrary.PlaceOrder(1, date, desiredAmount, kitType));
+        }
+
+        [Fact]
+        public void PlaceOrder_ZeroKitAmount_ThrowsException()
         {
             // Arrange
             OrderLibrary orderLibrary = new OrderLibrary();
             DateTime date = DateTime.Now.AddMonths(1);
             int kitType = 1;
             int desiredAmount = 0;
-            decimal kitPrice = 98.99m;
 
-            // Act
-            bool result = orderLibrary.PlaceOrder(1, date, desiredAmount, kitType);
-
-            // Assert
-            result.Should().BeFalse();
+            // Act and assert
+            Assert.Throws<ArgumentException>(() => orderLibrary.PlaceOrder(1, date, desiredAmount, kitType));
         }
 
         [Fact]
-        public void PlaceOrder_TooManyDesiredKits_ReturnsFalse()
+        public void PlaceOrder_TooManyDesiredKits_ThrowsException()
         {
             // Arrange
             OrderLibrary orderLibrary = new OrderLibrary();
@@ -125,11 +146,8 @@ namespace OrderLibraryTest
             int kitType = 1;
             int desiredAmount = 1000;
 
-            // Act
-            bool result = orderLibrary.PlaceOrder(1, date, desiredAmount, kitType);
-
-            // Assert
-            result.Should().BeFalse();
+            // Act and assert
+            Assert.Throws<ArgumentException>(() => orderLibrary.PlaceOrder(1, date, desiredAmount, kitType));
         }
 
         [Fact]
@@ -191,6 +209,46 @@ namespace OrderLibraryTest
             var results = orderLibrary.GetAllCustomerOrders(1);
             results.Should().NotBeNullOrEmpty();
             results[0].totalPrice.Should().Be(totalPrice);
+        }
+
+        [Fact]
+        public void PlaceOrder_InvalidCustomerId_ThrowsException()
+        {
+            // Arrange
+            OrderLibrary orderLibrary = new OrderLibrary();
+            DateTime date = DateTime.Now.AddMonths(1);
+            int kitType = 1;
+            int desiredAmount = 5;
+            int id = default;
+
+            // Act and assert
+            Assert.Throws<ArgumentNullException>(() => orderLibrary.PlaceOrder(id, date, desiredAmount, kitType));
+        }
+
+        [Fact]
+        public void PlaceOrder_InvalidKitType_ThrowsException()
+        {
+            // Arrange
+            OrderLibrary orderLibrary = new OrderLibrary();
+            DateTime date = DateTime.Now.AddMonths(1);
+            int kitType = default;
+            int desiredAmount = 5;
+
+            // Act and assert
+            Assert.Throws<ArgumentNullException>(() => orderLibrary.PlaceOrder(1, date, desiredAmount, kitType));
+        }
+
+        [Fact]
+        public void PlaceOrder_NonExistingKitType_ThrowsException()
+        {
+            // Arrange
+            OrderLibrary orderLibrary = new OrderLibrary();
+            DateTime date = DateTime.Now.AddMonths(1);
+            int kitType = 2;
+            int desiredAmount = 5;
+
+            // Act and assert
+            Assert.Throws<ArgumentException>(() => orderLibrary.PlaceOrder(1, date, desiredAmount, kitType));
         }
     }
 }
